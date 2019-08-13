@@ -285,6 +285,31 @@ public class CentralManager: ManagerType {
                 }
     }
 
+    @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+    public func registerForConnectionEvents(options: [CBConnectionEventMatchingOption: Any]?)
+        -> Observable<(CBConnectionEvent, Peripheral)> {
+        let observable = delegateWrapper.connectionEventDidOccur
+            .map { [weak self] (event, cbPeripheral) -> (CBConnectionEvent, Peripheral) in
+                guard let strongSelf = self else { throw BluetoothError.destroyed }
+                let peripheral = strongSelf.retrievePeripheral(for: cbPeripheral)
+                return (event, peripheral)
+            }
+        manager.registerForConnectionEvents(options: options)
+        return ensure(.poweredOn, observable: observable)
+    }
+
+    @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+    public func observeANCSAuthorization()
+        -> Observable<Peripheral> {
+        let observable = delegateWrapper.didUpdateANCSAuthorizationForPeripheral
+            .map { [weak self] (cbPeripheral) -> (Peripheral) in
+                guard let strongSelf = self else { throw BluetoothError.destroyed }
+                let peripheral = strongSelf.retrievePeripheral(for: cbPeripheral)
+                return peripheral
+            }
+        return ensure(.poweredOn, observable: observable)
+    }
+
     // MARK: Internal functions
 
     /// Ensure that specified `peripheral` is connected during subscription.

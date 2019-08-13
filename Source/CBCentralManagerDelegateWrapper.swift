@@ -10,6 +10,8 @@ class CBCentralManagerDelegateWrapper: NSObject, CBCentralManagerDelegate {
     let didConnectPeripheral = PublishSubject<CBPeripheral>()
     let didFailToConnectPeripheral = PublishSubject<(CBPeripheral, Error?)>()
     let didDisconnectPeripheral = PublishSubject<(CBPeripheral, Error?)>()
+    let connectionEventDidOccur = PublishSubject<(CBConnectionEvent, CBPeripheral)>()
+    let didUpdateANCSAuthorizationForPeripheral = PublishSubject<CBPeripheral>()
 
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         guard let bleState = BluetoothState(rawValue: central.state.rawValue) else { return }
@@ -58,5 +60,24 @@ class CBCentralManagerDelegateWrapper: NSObject, CBCentralManagerDelegate {
             error: \(String(describing: error)))
             """)
         didDisconnectPeripheral.onNext((peripheral, error))
+    }
+
+    @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+    func centralManager(_ central: CBCentralManager,
+                        connectionEventDidOccur event: CBConnectionEvent,
+                        for peripheral: CBPeripheral) {
+        RxBluetoothKitLog.d("""
+            \(central.logDescription) connectionEventDidOccur(event: \(event), peripheral: \(peripheral.logDescription))
+            """)
+        connectionEventDidOccur.onNext((event, peripheral))
+    }
+
+    @available(iOS 13.0, watchOS 6.0, tvOS 13.0, macOS 10.15, *)
+    func centralManager(_ central: CBCentralManager,
+                        didUpdateANCSAuthorizationFor peripheral: CBPeripheral) {
+        RxBluetoothKitLog.d("""
+            \(central.logDescription) didUpdateANCSAuthorizationFor(peripheral: \(peripheral.logDescription))
+            """)
+        didUpdateANCSAuthorizationForPeripheral.onNext(peripheral)
     }
 }
